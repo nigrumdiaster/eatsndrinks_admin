@@ -50,6 +50,15 @@ import BreadcrumbSeparator from '@/components/ui/breadcrumb/BreadcrumbSeparator.
 import BreadcrumbPage from '@/components/ui/breadcrumb/BreadcrumbPage.vue';
 import PaginatedTable from "~/components/molecules/PaginatedTable.vue";
 
+interface User {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  fullname: string;
+  is_active: boolean | string;
+}
+
 const toast = useToast();
 
 const users = ref<User[]>([]);

@@ -37,5 +37,17 @@ export default <RouterConfig>{
             component: () => import('~/pages/SysAuth/UserManagement/[id].vue'),
             meta: { middleware: 'admin' },
         },
+        {
+            name: 'product-management',
+            path: '/product-management',
+            component: () => import('~/pages/ProductManagement/List.vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
+            name: 'contact',
+            path: '/contact',
+            component: () => import('~/pages/ContactUs/List.vue'),
+            meta: { middleware: 'admin' },
+        },
     ]
 };

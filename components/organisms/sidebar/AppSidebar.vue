@@ -84,11 +84,18 @@ const data = {
       items: [
         {
           title: 'Danh sách sản phẩm',
-          url: '#',
+          url: '/product-management',
         },
+      ],
+    },
+    {
+      title: 'Liên hệ',
+      url: '#',
+      icon: BookOpen,
+      items: [
         {
-          title: 'Danh mục sản phẩm',
-          url: '#',
+          title: 'Danh sách liên hệ',
+          url: '/contact',
         },
       ],
     },
