@@ -29,7 +29,7 @@
               class="w-full border border-gray-300 rounded px-3 py-2"
             />
           </div>
-          <NuxtLink to="/da/create">
+          <NuxtLink to="/product-management/create" class="w-full sm:w-auto">
             <Button class="btn btn-primary w-full sm:w-auto">Thêm mới</Button>
           </NuxtLink>
         </div>

@@ -44,6 +44,12 @@ export default <RouterConfig>{
             meta: { middleware: 'admin' },
         },
         {
+            name: 'product-management-create',
+            path: '/product-management/create',
+            component: () => import('~/pages/ProductManagement/Create.vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
             name: 'contact',
             path: '/contact',
             component: () => import('~/pages/ContactUs/List.vue'),
