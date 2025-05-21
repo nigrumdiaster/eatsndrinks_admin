@@ -1,54 +1,87 @@
 <template>
   <div class="grid gap-4">
-      <div class="grid gap-2">
-          <Label for="username">Tên đăng nhập</Label>
-          <Input id="username" v-model="user.username" type="text" placeholder="Tên đăng nhập" required />
-      </div>
-      <span class="text-red-500">(*) Chỉ có thể chỉnh sửa các mục bên dưới</span>
-      <div class="grid gap-2">
-          <Label for="email">Email</Label>
-          <Input id="email" v-model="user.email" type="email" placeholder="Email" required />
-      </div>
-      <div class="grid gap-2">
-          <Label for="fullname">Họ và tên</Label>
-          <Input id="fullname" v-model="user.fullname" type="text" placeholder="Họ và tên" required />
-      </div>
-      <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button type="submit" class="w-full sm:w-60" @click="saveChanges">
-              Lưu thay đổi
-          </Button>
-          <Button variant="destructive" type="button" class="w-full sm:w-60" @click="cancelChanges">
-              Thoát
-          </Button>
-      </div>
+    <div class="grid gap-2">
+      <Label for="username">Tên đăng nhập</Label>
+      <Input id="username" v-model="form.username" type="text" placeholder="Tên đăng nhập" readonly />
+    </div>
+
+    <span class="text-red-500">(*) Chỉ có thể chỉnh sửa các mục bên dưới</span>
+
+    <div class="grid gap-2">
+      <Label for="first_name">Họ</Label>
+      <Input id="first_name" v-model="form.first_name" type="text" placeholder="Họ" required />
+    </div>
+
+    <div class="grid gap-2">
+      <Label for="last_name">Tên</Label>
+      <Input id="last_name" v-model="form.last_name" type="text" placeholder="Tên" required />
+    </div>
+
+    <div class="grid gap-2">
+      <Label for="phone_number">Số điện thoại</Label>
+      <Input id="phone_number" v-model="form.phone_number" type="text" placeholder="Số điện thoại" />
+    </div>
+
+    <div class="grid gap-2">
+      <Label for="address">Địa chỉ</Label>
+      <Input id="address" v-model="form.address" type="text" placeholder="Địa chỉ" />
+    </div>
+
+    <div class="flex items-center gap-2">
+      <input id="is_active" type="checkbox" v-model="form.is_active" class="w-4 h-4" />
+      <Label for="is_active">Kích hoạt tài khoản</Label>
+    </div>
+
+    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <Button type="submit" class="w-full sm:w-60" @click="saveChanges">
+        Lưu thay đổi
+      </Button>
+      <Button variant="destructive" type="button" class="w-full sm:w-60" @click="cancelChanges">
+        Thoát
+      </Button>
+    </div>
   </div>
 </template>
+
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from 'vue-toastification'
-import { useRouter } from '#app';
-// Định nghĩa sự kiện mà component này sẽ phát ra
-const emit = defineEmits(["save", "cancel"]);
+
+const emit = defineEmits(["save", "cancel"])
 
 const props = defineProps({
   user: {
     type: Object,
     required: true,
-    default: () => ({ username: '', email: '', fullname: '', password: '' }),
+    default: () => ({
+      username: '',
+      first_name: '',
+      last_name: '',
+      phone_number: '',
+      address: '',
+      is_active: true,
+    }),
   },
-});
+})
 
 const toast = useToast()
-const router = useRouter();
-const saveChanges = () => {
-  emit("save", props.user);
 
-};
+// Dùng reactive để có thể chỉnh sửa dữ liệu props
+const form = reactive({ ...props.user })
+
+// Nếu props.user thay đổi từ bên ngoài → cập nhật lại form
+watch(() => props.user, (newUser) => {
+  Object.assign(form, newUser)
+})
+
+const saveChanges = () => {
+  emit("save", { ...form })
+}
 
 const cancelChanges = () => {
-  emit("cancel");
-};
+  emit("cancel")
+}
 </script>
