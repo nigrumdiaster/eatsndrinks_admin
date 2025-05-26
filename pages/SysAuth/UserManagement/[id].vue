@@ -50,10 +50,6 @@ interface User {
   is_active: boolean
 }
 
-interface UserResponse {
-  message: string
-  user: User
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -65,7 +61,7 @@ const fetchUser = async () => {
     const config = useRuntimeConfig()
     const token = useCookie('access_token')
 
-    const response = await $fetch<UserResponse>(`${config.public.apiBase}/users/admin/user/${route.params.id}/`, {
+    const response = await $fetch<User>(`${config.public.apiBase}/users/admin/user/${route.params.id}/`, {
       headers: { Authorization: `Bearer ${token.value}` },
     })
     user.value = response
