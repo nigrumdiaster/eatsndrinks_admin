@@ -11,25 +11,33 @@
     </div>
 
     <div class="grid gap-2">
-      <Label for="mainimage">Ảnh</Label>
-      <Input id="mainimage" type="file" @change="handleFileChange" />
+      <Label for="mainimage">Ảnh chính</Label>
+      <Input id="mainimage" type="file" @change="(e: Event) => handleFileChange(e, 'main')" />
     </div>
 
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid gap-2">
+      <Label for="uploaded_images">Ảnh phụ</Label>
+      <Input id="uploaded_images" type="file" @change="(e: Event) => handleFileChange(e, 'uploaded_images')" multiple/>
+    </div>
+
+    <div class="grid gap-2">
       <div class="grid gap-2">
         <Label for="price">Giá</Label>
         <Input id="price" v-model="form.price" type="number" min="0" placeholder="Giá" />
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid gap-2">
       <div class="grid gap-2">
         <Label for="category">Danh mục</Label>
         <Input id="category" v-model="form.category" type="number" placeholder="ID danh mục" />
       </div>
+
       <div class="grid gap-2">
-        <Label for="is_active">Hiển thị</Label>
-        <input id="is_active" v-model="form.is_active" type="checkbox" />
+        <div class="grid gap-2">
+          <Label for="is_active">Hiển thị</Label>
+          <input id="is_active" v-model="form.is_active" type="checkbox" class="w-5 h-5" />
+        </div>
       </div>
     </div>
 
@@ -61,15 +69,21 @@ const form = ref({
   name: '',
   description: '',
   mainimage: null as File | null,
+  uploaded_images: [] as File[], // Đổi tên trường
   price: 0,
   category: 0,
   is_active: true,
 })
 
-const handleFileChange = (e: Event) => {
+const handleFileChange = (e: Event, type: 'main' | 'uploaded_images' = 'main') => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
-    form.value.mainimage = target.files[0]
+    if (type === 'main') {
+      form.value.mainimage = target.files[0]
+    } else {
+      form.value.uploaded_images = Array.from(target.files)
+      console.log('Selected images:', form.value.uploaded_images)
+    }
   }
 }
 
@@ -80,18 +94,21 @@ const submitForm = () => {
     return
   }
 
-const formData = new FormData()
+  const formData = new FormData()
 
-for (const [key, value] of Object.entries(form.value)) {
-  if (value !== null && value !== undefined) {
-    if (value instanceof File) {
-      formData.append(key, value)
-    } else {
-      formData.append(key, String(value))
+  for (const [key, value] of Object.entries(form.value)) {
+    if (key === 'uploaded_images' && Array.isArray(value)) {
+      value.forEach((file) => {
+        formData.append('uploaded_images', file)
+      })
+    } else if (value !== null && value !== undefined && !(value instanceof Array)) {
+      if (value instanceof File) {
+        formData.append(key, value)
+      } else {
+        formData.append(key, String(value))
+      }
     }
   }
-}
-
 
   emit('create-product', formData)
 }
