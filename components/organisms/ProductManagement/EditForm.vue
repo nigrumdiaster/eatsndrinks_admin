@@ -48,7 +48,16 @@
 
     <div class="grid gap-2">
       <Label for="category">Danh mục</Label>
-      <Input id="category" v-model="form.category" type="number" placeholder="ID danh mục" />
+      <Select v-model="form.category">
+        <SelectTrigger class="w-full">
+          <SelectValue placeholder="Chọn danh mục" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="category in categories" :key="category.id" :value="category.id">
+            {{ category.name }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
     <div class="grid gap-2">
@@ -56,25 +65,40 @@
       <input id="is_active" v-model="form.is_active" type="checkbox" class="w-5 h-5" />
     </div>
 
-    <div class="grid gap-2">
-      <Label>Ngày tạo</Label>
-      <div>{{ form.created_at }}</div>
+    <div class="grid gap-4 p-4 mt-4 border rounded-lg bg-muted">
+      <h3 class="font-medium text-lg">Thông tin sản phẩm</h3>
+      
+      <div class="grid gap-2">
+        <Label>Ngày tạo</Label>
+        <div class="p-2 bg-background rounded border">
+          {{ formatDateTime(form.created_at) }}
+        </div>
+      </div>
+
+      <div class="grid gap-2">
+        <Label>Ngày cập nhật</Label>
+        <div class="p-2 bg-background rounded border">
+          {{ formatDateTime(form.updated_at) }}
+        </div>
+      </div>
+
+      <div class="grid gap-2">
+        <Label>Trạng thái Flash Sale</Label>
+        <div class="p-2 bg-background rounded border flex items-center gap-2">
+          <div :class="form.is_flash_sale_active ? 'bg-green-500' : 'bg-red-500'" class="w-2 h-2 rounded-full"></div>
+          {{ form.is_flash_sale_active ? 'Đang Flash Sale' : 'Không trong Flash Sale' }}
+        </div>
+      </div>
+
+      <div class="grid gap-2">
+        <Label>Giá hiện tại</Label>
+        <div class="p-2 bg-background rounded border font-medium text-primary">
+          {{ formatPrice(form.current_price) }} đ
+        </div>
+      </div>
     </div>
 
-    <div class="grid gap-2">
-      <Label>Ngày cập nhật</Label>
-      <div>{{ form.updated_at }}</div>
-    </div>
 
-    <div class="grid gap-2">
-      <Label>Đang Flash Sale?</Label>
-      <div>{{ form.is_flash_sale_active }}</div>
-    </div>
-
-    <div class="grid gap-2">
-      <Label>Giá hiện tại</Label>
-      <div>{{ form.current_price }}</div>
-    </div>
 
     <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
       <Button type="submit" class="w-full sm:w-60" @click="submitForm">
@@ -92,14 +116,17 @@ import { ref, onMounted } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from 'vue-toastification'
 import { useRouter, useRoute } from '#app'
+import { useRuntimeConfig } from '#app'
 
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
+const config = useRuntimeConfig()
 
-const emit = defineEmits(['create-product', 'reset-form'])
+const emit = defineEmits(['save', 'cancel'])
 
 const form = ref({
   id: null,
@@ -120,6 +147,17 @@ const form = ref({
   is_flash_sale_active: null,
   current_price: 0,
 })
+
+const categories = ref<Array<{ id: number; name: string }>>([])
+
+const fetchCategories = async () => {
+  try {
+    const res = await $fetch(`${config.public.apiBase}/catalogue/categories/`)
+    categories.value = res as Array<{ id: number; name: string }>
+  } catch (e) {
+    toast.error('Không thể tải danh sách danh mục')
+  }
+}
 
 // Proxy for flash_sale_price to avoid null assignment to Input
 const flashSalePriceProxy = computed({
@@ -154,11 +192,14 @@ const flashSaleEndProxy = computed({
 const fetchProduct = async () => {
   const id = route.params.id
   try {
-    const res = await $fetch(`/api/products/${id}/`)
+    const res = await $fetch(`${config.public.apiBase}/catalogue/products/${id}/`)
     const product = res as {
       mainimage: string
       images?: Array<{ id: number; image: string; product: number }>
       price: number | string
+      flash_sale_price: string | null
+      flash_sale_start: string | null
+      flash_sale_end: string | null
       [key: string]: any
     }
     form.value = {
@@ -170,6 +211,9 @@ const fetchProduct = async () => {
             mainimage_url: product.mainimage,
             images: product.images || [],
             price: Number(product.price),
+            flash_sale_price: product.flash_sale_price ? Number(product.flash_sale_price) : null,
+            flash_sale_start: product.flash_sale_start ? new Date(product.flash_sale_start).toISOString().slice(0, 16) : null,
+            flash_sale_end: product.flash_sale_end ? new Date(product.flash_sale_end).toISOString().slice(0, 16) : null,
           }
         : {}),
     }
@@ -178,7 +222,10 @@ const fetchProduct = async () => {
   }
 }
 
-onMounted(fetchProduct)
+onMounted(() => {
+  fetchProduct()
+  fetchCategories()
+})
 
 const handleFileChange = (e: Event, type: 'main' | 'uploaded_images' = 'main') => {
   const target = e.target as HTMLInputElement
@@ -191,6 +238,10 @@ const handleFileChange = (e: Event, type: 'main' | 'uploaded_images' = 'main') =
   }
 }
 
+const handleCategoryChange = () => {
+  // Handle category change if needed
+}
+
 const submitForm = () => {
   const { name, price, category } = form.value
   if (!name || !price || category === null) {
@@ -200,27 +251,58 @@ const submitForm = () => {
 
   const formData = new FormData()
 
-  for (const [key, value] of Object.entries(form.value)) {
-    if (key === 'uploaded_images' && Array.isArray(value)) {
-      value.forEach((file) => {
-        if (file instanceof File) {
-          formData.append('uploaded_images', file)
-        }
-      })
-    } else if (value !== null && value !== undefined && !(value instanceof Array)) {
-      if (value instanceof File) {
-        formData.append(key, value)
-      } else {
-        formData.append(key, String(value))
-      }
-    }
+  // Thêm các trường cơ bản
+  formData.append('name', form.value.name)
+  formData.append('description', form.value.description || '')
+  formData.append('price', String(form.value.price))
+  formData.append('category', String(form.value.category))
+  formData.append('is_active', String(form.value.is_active))
+  
+  // Thêm các trường flash sale
+  if (form.value.flash_sale_price !== null) {
+    formData.append('flash_sale_price', String(form.value.flash_sale_price))
+  }
+  if (form.value.flash_sale_start !== null) {
+    formData.append('flash_sale_start', form.value.flash_sale_start)
+  }
+  if (form.value.flash_sale_end !== null) {
+    formData.append('flash_sale_end', form.value.flash_sale_end)
   }
 
-  emit('create-product', formData)
+  // Thêm ảnh chính nếu có
+  if (form.value.mainimage instanceof File) {
+    formData.append('mainimage', form.value.mainimage)
+  }
+
+  // Thêm các ảnh phụ nếu có
+  if (form.value.uploaded_images.length > 0) {
+    form.value.uploaded_images.forEach((file) => {
+      formData.append('uploaded_images', file)
+    })
+  }
+
+  emit('save', formData)
 }
 
-
 const cancelCreate = () => {
-  router.push('/product-management')
+  emit('cancel')
+}
+
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(date);
+}
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('vi-VN').format(price);
 }
 </script>

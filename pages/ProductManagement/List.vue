@@ -19,7 +19,7 @@
     </template>
 
     <div class="flex flex-col gap-4 p-4 pt-0">
-      <h1 class="text-2xl font-bold">Danh sách Phân tích dữ liệu thuộc tính</h1>
+      <h1 class="text-2xl font-bold">Danh sách sản phẩm</h1>
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div class="w-full sm:w-1/3">
             <Input
@@ -97,7 +97,7 @@ interface ApiResponse {
   results: Product[];
 }
 
-const entity = "admin/products";
+const entity = "product-management";
 const toast = useToast()
 const config = useRuntimeConfig()
 const token = useCookie('access_token')
@@ -110,7 +110,6 @@ const headers = [
   { text: "Tên sản phẩm", value: "name" },
   { text: "Mô tả", value: "description" },
   { text: "Hình ảnh", value: "mainimage", sortable: false },
-  { text: "Số lượng", value: "quantity" },
   { text: "Giá", value: "price" },
   { text: "Trạng thái", value: "is_active" },
   { text: "Actions", value: "actions", sortable: false },

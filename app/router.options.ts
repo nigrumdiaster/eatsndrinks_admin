@@ -50,6 +50,24 @@ export default <RouterConfig>{
             meta: { middleware: 'admin' },
         },
         {
+            name: 'product-management-id',
+            path: '/product-management/:id',
+            component: () => import('~/pages/ProductManagement/[id].vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
+            name: 'category-management',
+            path: '/category-management',
+            component: () => import('~/pages/CategoryManagement/List.vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
+            name: 'category-management-create',
+            path: '/category-management/create',
+            component: () => import('~/pages/CategoryManagement/Create.vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
             name: 'contact',
             path: '/contact',
             component: () => import('~/pages/ContactUs/List.vue'),
