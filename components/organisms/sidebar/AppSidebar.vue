@@ -39,7 +39,8 @@ import {
     Settings2,
     SquareTerminal,
     ChartLine,
-    Contact
+    Contact,
+    Package
 } from 'lucide-vue-next'
 
 
@@ -101,6 +102,17 @@ const data = {
         {
           title: 'Danh sách liên hệ',
           url: '/contact',
+        },
+      ],
+    },
+    {
+      title: 'Quản lý đơn hàng',
+      url: '#',
+      icon: Package,
+      items: [
+        {
+          title: 'Danh sách đơn hàng',
+          url: '/order-management',
         },
       ],
     },
