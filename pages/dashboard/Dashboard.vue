@@ -23,19 +23,8 @@
               Dashboard
             </h2>
           </div>
-          <Tabs default-value="overview" class="space-y-4">
-            <TabsList>
-              <TabsTrigger value="overview">
-                Tổng quan
-              </TabsTrigger>
-              <TabsTrigger value="analytics" disabled>
-                Phân tích
-              </TabsTrigger>
-              <TabsTrigger value="reports" disabled>
-                Báo cáo
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" class="space-y-4">
+
+            <div class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -50,10 +39,18 @@
                   </CardHeader>
                   <CardContent>
                     <div class="text-2xl font-bold">
-                      $45,231.89
+                      {{ formatCurrency(monthlyRevenue.revenue_this_month) }}
                     </div>
-                    <p class="text-xs text-muted-foreground">
-                      +20.1% so với tháng trước
+                    <p class="text-xs" v-if="monthlyRevenue.percentage_change !== null"
+                       :class="{
+                         'text-green-600': monthlyRevenue.percentage_change > 0,
+                         'text-red-600': monthlyRevenue.percentage_change < 0,
+                         'text-muted-foreground': monthlyRevenue.percentage_change === 0
+                       }">
+                      {{ monthlyRevenue.percentage_change > 0 ? '+' : '' }}{{ monthlyRevenue.percentage_change }}% so với tháng trước
+                    </p>
+                    <p class="text-xs text-muted-foreground" v-else>
+                      Không có dữ liệu tháng trước
                     </p>
                   </CardContent>
                 </Card>
@@ -113,10 +110,10 @@
                   </CardHeader>
                   <CardContent>
                     <div class="text-2xl font-bold">
-                      +12
+                      {{ flashSaleCount }}
                     </div>
                     <p class="text-xs text-muted-foreground">
-                      +12 so với hôm qua
+                      hàng hoá đang được giảm giá
                     </p>
                   </CardContent>
                 </Card>
@@ -134,7 +131,7 @@
                   <CardHeader>
                     <CardTitle>Bán gần đây</CardTitle>
                     <CardDescription>
-                      Bạn đã bán 34 sản phẩm tháng này.
+                      Bạn đã bán {{ monthlySales.total_quantity }} đơn hàng tháng này.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -142,8 +139,8 @@
                   </CardContent>
                 </Card>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+
         </div>
       </div>
     </div>
@@ -151,6 +148,8 @@
 </template>
 
 <script lang="ts" setup>
+import { ref, onMounted } from 'vue'
+import { useRuntimeConfig, useCookie } from '#app'
 import MainTemplate from '~/components/layouts/MainTemplate.vue'
 import Breadcrumb from '@/components/ui/breadcrumb/Breadcrumb.vue'
 import BreadcrumbList from '@/components/ui/breadcrumb/BreadcrumbList.vue'
@@ -158,7 +157,6 @@ import BreadcrumbItem from '@/components/ui/breadcrumb/BreadcrumbItem.vue'
 import BreadcrumbLink from '@/components/ui/breadcrumb/BreadcrumbLink.vue'
 import BreadcrumbSeparator from '@/components/ui/breadcrumb/BreadcrumbSeparator.vue'
 import BreadcrumbPage from '@/components/ui/breadcrumb/BreadcrumbPage.vue'
-
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -175,4 +173,91 @@ import {
 } from '@/components/ui/tabs'
 import Overview from '~/components/organisms/Dashboard/Overview.vue'
 import RecentSales from '~/components/organisms/Dashboard/RecentSales.vue'
+
+interface MonthlySales {
+  total_quantity: number
+}
+
+interface MonthlyRevenue {
+  revenue_this_month: number
+  revenue_last_month: number
+  percentage_change: number | null
+}
+
+interface FlashSaleResponse {
+  count: number
+  total_pages: number
+  next: string | null
+  previous: string | null
+  results: Array<any>
+}
+
+const monthlySales = ref<MonthlySales>({ total_quantity: 0 })
+const monthlyRevenue = ref<MonthlyRevenue>({
+  revenue_this_month: 0,
+  revenue_last_month: 0,
+  percentage_change: null
+})
+const flashSaleCount = ref<number>(0)
+
+const config = useRuntimeConfig()
+const token = useCookie('access_token')
+
+const fetchMonthlySales = async () => {
+  try {
+    if (!token.value) return
+    const response = await $fetch<MonthlySales>(
+      `${config.public.apiBase}/order/admin/monthly-sales/`,
+      {
+        headers: { Authorization: `Bearer ${token.value}` }
+      }
+    )
+    monthlySales.value = response
+  } catch (error) {
+    console.error('Error fetching monthly sales:', error)
+  }
+}
+
+const fetchMonthlyRevenue = async () => {
+  try {
+    if (!token.value) return
+    const response = await $fetch<MonthlyRevenue>(
+      `${config.public.apiBase}/order/admin/monthly-revenue/`,
+      {
+        headers: { Authorization: `Bearer ${token.value}` }
+      }
+    )
+    monthlyRevenue.value = response
+  } catch (error) {
+    console.error('Error fetching monthly revenue:', error)
+  }
+}
+
+const fetchFlashSaleProducts = async () => {
+  try {
+    if (!token.value) return
+    const response = await $fetch<FlashSaleResponse>(
+      `${config.public.apiBase}/catalogue/products/flash-sale/`,
+      {
+        headers: { Authorization: `Bearer ${token.value}` }
+      }
+    )
+    flashSaleCount.value = response.count
+  } catch (error) {
+    console.error('Error fetching flash sale products:', error)
+  }
+}
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(amount)
+}
+
+onMounted(() => {
+  fetchMonthlySales()
+  fetchMonthlyRevenue()
+  fetchFlashSaleProducts()
+})
 </script>

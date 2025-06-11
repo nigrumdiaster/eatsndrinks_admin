@@ -1,96 +1,57 @@
 <script setup lang="ts">
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/components/ui/avatar'
+import { ref, onMounted } from 'vue'
+import { useRuntimeConfig, useCookie } from '#app'
+
+interface RecentCustomer {
+  customer_name: string
+  customer_phone: string
+  total_price: number
+}
+
+const recentCustomers = ref<RecentCustomer[]>([])
+const config = useRuntimeConfig()
+const token = useCookie('access_token')
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(price)
+}
+
+const fetchRecentCustomers = async () => {
+  try {
+    if (!token.value) return
+    const response = await $fetch<RecentCustomer[]>(
+      `${config.public.apiBase}/order/admin/recent-paid-customers/`,
+      {
+        headers: { Authorization: `Bearer ${token.value}` }
+      }
+    )
+    recentCustomers.value = response
+  } catch (error) {
+    console.error('Error fetching recent customers:', error)
+  }
+}
+
+onMounted(() => {
+  fetchRecentCustomers()
+})
 </script>
 
 <template>
   <div class="space-y-8">
-    <div class="flex items-center">
-      <Avatar class="h-9 w-9">
-        <AvatarImage src="/avatars/01.png" alt="Avatar" />
-        <AvatarFallback>OM</AvatarFallback>
-      </Avatar>
+    <div v-for="customer in recentCustomers" :key="customer.customer_phone" class="flex items-center">
       <div class="ml-4 space-y-1">
         <p class="text-sm font-medium leading-none">
-          Olivia Martin
+          {{ customer.customer_name }}
         </p>
         <p class="text-sm text-muted-foreground">
-          olivia.martin@email.com
+          {{ customer.customer_phone }}
         </p>
       </div>
       <div class="ml-auto font-medium">
-        +$1,999.00
-      </div>
-    </div>
-    <div class="flex items-center">
-      <Avatar class="flex h-9 w-9 items-center justify-center space-y-0 border">
-        <AvatarImage src="/avatars/02.png" alt="Avatar" />
-        <AvatarFallback>JL</AvatarFallback>
-      </Avatar>
-      <div class="ml-4 space-y-1">
-        <p class="text-sm font-medium leading-none">
-          Jackson Lee
-        </p>
-        <p class="text-sm text-muted-foreground">
-          jackson.lee@email.com
-        </p>
-      </div>
-      <div class="ml-auto font-medium">
-        +$39.00
-      </div>
-    </div>
-    <div class="flex items-center">
-      <Avatar class="h-9 w-9">
-        <AvatarImage src="/avatars/03.png" alt="Avatar" />
-        <AvatarFallback>IN</AvatarFallback>
-      </Avatar>
-      <div class="ml-4 space-y-1">
-        <p class="text-sm font-medium leading-none">
-          Isabella Nguyen
-        </p>
-        <p class="text-sm text-muted-foreground">
-          isabella.nguyen@email.com
-        </p>
-      </div>
-      <div class="ml-auto font-medium">
-        +$299.00
-      </div>
-    </div>
-    <div class="flex items-center">
-      <Avatar class="h-9 w-9">
-        <AvatarImage src="/avatars/04.png" alt="Avatar" />
-        <AvatarFallback>WK</AvatarFallback>
-      </Avatar>
-      <div class="ml-4 space-y-1">
-        <p class="text-sm font-medium leading-none">
-          William Kim
-        </p>
-        <p class="text-sm text-muted-foreground">
-          will@email.com
-        </p>
-      </div>
-      <div class="ml-auto font-medium">
-        +$99.00
-      </div>
-    </div>
-    <div class="flex items-center">
-      <Avatar class="h-9 w-9">
-        <AvatarImage src="/avatars/05.png" alt="Avatar" />
-        <AvatarFallback>SD</AvatarFallback>
-      </Avatar>
-      <div class="ml-4 space-y-1">
-        <p class="text-sm font-medium leading-none">
-          Sofia Davis
-        </p>
-        <p class="text-sm text-muted-foreground">
-          sofia.davis@email.com
-        </p>
-      </div>
-      <div class="ml-auto font-medium">
-        +$39.00
+        {{ formatPrice(customer.total_price) }}
       </div>
     </div>
   </div>
