@@ -150,6 +150,7 @@ const selectedPaymentStatus = ref<string | null>(null)
 const headers = [
   { text: "ID", value: "id" },
   { text: "Mã khách hàng", value: "user" },
+  { text: "Tên khách hàng", value: "full_name" },
   { text: "Tổng tiền", value: "total_price" },
   { text: "Trạng thái", value: "status" },
   { text: "Phương thức thanh toán", value: "payment_method" },
