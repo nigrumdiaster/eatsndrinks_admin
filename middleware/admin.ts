@@ -4,22 +4,31 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // Nếu chưa đăng nhập, chuyển hướng về trang đăng nhập
   if (!isAuthenticated) {
-    return navigateTo("/login");
+    if (to.path !== "/login") {
+      return navigateTo("/login");
+    }
+    return; // Tránh vòng lặp nếu đã ở trang login
   }
 
   // Nếu chưa kiểm tra quyền admin, gọi API để kiểm tra
-  if (isAdmin === false) {
+  if (isAdmin === null) {
     try {
       await fetchUser();
       await checkAdmin();
     } catch (error) {
       console.error("Lỗi kiểm tra admin:", error);
-      return navigateTo("/login");
+      if (to.path !== "/login") {
+        return navigateTo("/login");
+      }
+      return;
     }
   }
 
   // Nếu không phải admin, chuyển hướng về trang chủ
   if (!isAdmin) {
-    return navigateTo("/");
+    if (to.path !== "/") {
+      return navigateTo("/");
+    }
+    return; // Tránh vòng lặp nếu đã ở trang chủ
   }
 });
