@@ -89,6 +89,7 @@ const updateProduct = async (formData: FormData) => {
     })
 
     toast.success('Cập nhật thành công!')
+    await fetchProduct()
   } catch (error) {
     console.error('Lỗi khi cập nhật sản phẩm:', error)
     toast.error('Cập nhật thất bại!')

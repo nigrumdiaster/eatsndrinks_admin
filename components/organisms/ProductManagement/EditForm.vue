@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -127,6 +127,13 @@ const route = useRoute()
 const config = useRuntimeConfig()
 
 const emit = defineEmits(['save', 'cancel'])
+
+const props = defineProps({
+  product: {
+    type: Object,
+    required: true
+  }
+})
 
 const form = ref({
   id: null,
@@ -147,6 +154,27 @@ const form = ref({
   is_flash_sale_active: null,
   current_price: 0,
 })
+
+// Watch for changes in product prop
+watch(() => props.product, (newProduct) => {
+  if (newProduct) {
+    form.value = {
+      ...form.value,
+      ...(newProduct && typeof newProduct === 'object'
+        ? {
+            ...newProduct,
+            mainimage: null,
+            mainimage_url: newProduct.mainimage,
+            images: newProduct.images || [],
+            price: Number(newProduct.price),
+            flash_sale_price: newProduct.flash_sale_price ? Number(newProduct.flash_sale_price) : null,
+            flash_sale_start: newProduct.flash_sale_start ? new Date(newProduct.flash_sale_start).toISOString().slice(0, 16) : null,
+            flash_sale_end: newProduct.flash_sale_end ? new Date(newProduct.flash_sale_end).toISOString().slice(0, 16) : null,
+          }
+        : {}),
+    }
+  }
+}, { immediate: true })
 
 const categories = ref<Array<{ id: number; name: string }>>([])
 
@@ -189,41 +217,8 @@ const flashSaleEndProxy = computed({
   }
 })
 
-const fetchProduct = async () => {
-  const id = route.params.id
-  try {
-    const res = await $fetch(`${config.public.apiBase}/catalogue/products/${id}/`)
-    const product = res as {
-      mainimage: string
-      images?: Array<{ id: number; image: string; product: number }>
-      price: number | string
-      flash_sale_price: string | null
-      flash_sale_start: string | null
-      flash_sale_end: string | null
-      [key: string]: any
-    }
-    form.value = {
-      ...form.value,
-      ...(product && typeof product === 'object'
-        ? {
-            ...product,
-            mainimage: null, // Ensure mainimage stays a File or null
-            mainimage_url: product.mainimage,
-            images: product.images || [],
-            price: Number(product.price),
-            flash_sale_price: product.flash_sale_price ? Number(product.flash_sale_price) : null,
-            flash_sale_start: product.flash_sale_start ? new Date(product.flash_sale_start).toISOString().slice(0, 16) : null,
-            flash_sale_end: product.flash_sale_end ? new Date(product.flash_sale_end).toISOString().slice(0, 16) : null,
-          }
-        : {}),
-    }
-  } catch (e) {
-    toast.error('Không thể tải dữ liệu sản phẩm')
-  }
-}
 
 onMounted(() => {
-  fetchProduct()
   fetchCategories()
 })
 
