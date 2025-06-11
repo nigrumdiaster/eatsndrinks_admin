@@ -32,29 +32,26 @@ import BreadcrumbPage from '@/components/ui/breadcrumb/BreadcrumbPage.vue'
 import ProfileForm from '~/components/organisms/auth/ProfileForm.vue'
 
 interface User {
-  id: number;
-  username: string;
-  fullname: string;
-  email: string;
+  first_name: string
+  last_name: string
+  username: string
+  phone_number: string
+  address: string
 }
 
-interface UserApiResponse {
-  message: string;
-  user: User;
-}
 
 
 const user = ref<User | null>(null);
 const config = useRuntimeConfig();
-const token = useCookie('auth_token');
+const token = useCookie('access_token');
 const fetchUserProfile = async () => {
   try {
-    const data = await $fetch<UserApiResponse>(`${config.public.apiBase}/users/profile`, {headers: {
+    const data = await $fetch<User>(`${config.public.apiBase}/users/user/profile`, {headers: {
                 Authorization: `Bearer ${token.value}`
             }});
 
-    if (data.user) {
-      user.value = data.user;
+    if (data) {
+      user.value = data;
     }
   } catch (error) {
     console.error("Lỗi khi lấy thông tin user:", error);
