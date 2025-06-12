@@ -24,11 +24,11 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     }
   }
 
-  // Nếu không phải admin, chuyển hướng về trang chủ
+  // Nếu không phải admin, chuyển hướng về đăng nhập
   if (!isAdmin) {
-    if (to.path !== "/") {
-      return navigateTo("/");
+    if (to.path !== "/login") {
+      return navigateTo("/login");
     }
-    return; // Tránh vòng lặp nếu đã ở trang chủ
+    return; // Tránh vòng lặp nếu đã ở đăng nhập
   }
 });

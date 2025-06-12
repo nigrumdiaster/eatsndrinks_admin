@@ -34,7 +34,7 @@
 
     <div class="grid gap-2">
       <Label for="payment_method">Phương thức thanh toán</Label>
-      <select id="payment_method" v-model="order.payment_method" class="border p-2 rounded w-full">
+      <select id="payment_method" v-model="order.payment_method" class="border p-2 rounded w-full" disabled>
         <option v-for="(label, value) in paymentMethodChoices" :key="value" :value="value">{{ label }}</option>
       </select>
     </div>

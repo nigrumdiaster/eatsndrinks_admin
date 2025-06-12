@@ -79,6 +79,7 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (err) {
       console.error("Failed to check admin status:", err);
       isAdmin.value = false;
+      throw new Error("Không thể xác minh quyền admin");
     }
   };
 
