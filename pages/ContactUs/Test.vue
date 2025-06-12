@@ -8,15 +8,20 @@
           </BreadcrumbItem>
           <BreadcrumbSeparator class="hidden md:block" />
           <BreadcrumbItem>
-            <BreadcrumbPage>Trang dashboard</BreadcrumbPage>
+            <BreadcrumbPage>Quản lý liên hệ</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
     </template>
     <!-- Nội dung chính của trang -->
-    <div class="h -full w- full flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div class="hidden flex-col md:flex">
-        <Mail :accounts="accounts" :mails="mails" :nav-collapsed-size="4" />
+    <div class="flex flex-1 flex-col h-full">
+      <div class="flex-1 h-full p-4 md:p-6">
+        <div class="bg-white rounded-lg shadow-sm h-full">
+          <Mail 
+            :mails="emails" 
+            @send-reply="sendReply"
+          />
+        </div>
       </div>
     </div>
   </MainTemplate>
@@ -32,23 +37,61 @@ import BreadcrumbItem from '@/components/ui/breadcrumb/BreadcrumbItem.vue'
 import BreadcrumbLink from '@/components/ui/breadcrumb/BreadcrumbLink.vue'
 import BreadcrumbSeparator from '@/components/ui/breadcrumb/BreadcrumbSeparator.vue'
 import BreadcrumbPage from '@/components/ui/breadcrumb/BreadcrumbPage.vue'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
-import Overview from '~/components/organisms/Dashboard/Overview.vue'
-import RecentSales from '~/components/organisms/Dashboard/RecentSales.vue'
 import Mail from '~/components/organisms/mail/Mail.vue'
-import { accounts, mails } from '~/data/mails'
 
+interface Email {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  content: string;
+  created_at: string;
+  is_replied: boolean;
+}
+
+const emails = ref<Email[]>([]);
+const config = useRuntimeConfig();
+const token = useCookie("access_token");
+
+const fetchContactList = async () => {
+  try {
+    const response = await fetch(`${config.public.apiBase}/contact/contacts`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token.value}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch emails');
+    emails.value = await response.json();
+  } catch (error) {
+    console.error('Error fetching emails:', error);
+  }
+};
+
+const sendReply = async (replyData: { contactId: number; subject: string; message: string }) => {
+  try {
+    const response = await fetch(`${config.public.apiBase}/contact/reply/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token.value}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contact_id: replyData.contactId,
+        subject: replyData.subject,
+        message: replyData.message,
+      }),
+    });
+    if (!response.ok) throw new Error('Failed to send reply');
+    await fetchContactList();
+  } catch (error) {
+    console.error('Error sending reply:', error);
+    throw error;
+  }
+};
+
+onMounted(() => {
+  fetchContactList();
+});
 </script>

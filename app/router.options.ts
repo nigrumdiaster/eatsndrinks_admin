@@ -76,7 +76,7 @@ export default <RouterConfig>{
         {
             name: 'contact',
             path: '/contact',
-            component: () => import('~/pages/ContactUs/List.vue'),
+            component: () => import('~/pages/ContactUs/Test.vue'),
             meta: { middleware: 'admin' },
         },
         {
@@ -89,12 +89,6 @@ export default <RouterConfig>{
             name: 'order-management-id',
             path: '/order-management/:id',
             component: () => import('~/pages/OrderManagement/[id].vue'),
-            meta: { middleware: 'admin' },
-        },
-        {
-            name: 'mail',
-            path: '/mail',
-            component: () => import('~/pages/ContactUs/Test.vue'),
             meta: { middleware: 'admin' },
         },
     ]
