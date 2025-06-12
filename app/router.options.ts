@@ -68,6 +68,12 @@ export default <RouterConfig>{
             meta: { middleware: 'admin' },
         },
         {
+            name: 'category-management-id',
+            path: '/category-management/:id',
+            component: () => import('~/pages/CategoryManagement/[id].vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
             name: 'contact',
             path: '/contact',
             component: () => import('~/pages/ContactUs/List.vue'),
