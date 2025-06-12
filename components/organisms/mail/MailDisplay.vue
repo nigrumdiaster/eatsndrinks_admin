@@ -1,122 +1,105 @@
 <script lang="ts" setup>
-import type { Mail } from '~/data/mails'
 import { Archive, ArchiveX, Clock, Forward, MoreVertical, Reply, ReplyAll, Trash2 } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Button } from '~/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { Textarea } from '~/components/ui/textarea'
+import { Input } from '~/components/ui/input'
+
+interface Mail {
+  id: number
+  name: string
+  email: string
+  subject: string
+  content: string
+  created_at: string
+  is_replied: boolean
+}
 
 interface MailDisplayProps {
   mail: Mail | undefined
 }
 
 const props = defineProps<MailDisplayProps>()
+const emit = defineEmits<{
+  (e: 'send-reply', data: { contactId: number; subject: string; message: string }): void
+}>()
 
+const replySubject = ref('')
+const replyMessage = ref('')
 
-const today = new Date()
+const formatDate = (dateString: string) => {
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }
+  return new Date(dateString).toLocaleDateString('vi-VN', options)
+}
+
+const handleSendReply = () => {
+  if (!props.mail || !replyMessage.value.trim()) return
+
+  emit('send-reply', {
+    contactId: props.mail.id,
+    subject: replySubject.value || `Re: ${props.mail.subject}`,
+    message: replyMessage.value
+  })
+
+  replySubject.value = ''
+  replyMessage.value = ''
+}
 </script>
 
 <template>
   <div class="flex h-full flex-col">
-    <div class="flex items-center p-2">
-      <div class="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" size="icon" :disabled="!mail">
-              <Archive class="size-4" />
-              <span class="sr-only">Archive</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Archive</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" size="icon" :disabled="!mail">
-              <ArchiveX class="size-4" />
-              <span class="sr-only">Move to junk</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Move to junk</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" size="icon" :disabled="!mail">
-              <Trash2 class="size-4" />
-              <span class="sr-only">Move to trash</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Move to trash</TooltipContent>
-        </Tooltip>
-      </div>
-      <div class="ml-auto flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" size="icon" :disabled="!mail">
-              <Reply class="size-4" />
-              <span class="sr-only">Reply</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Reply</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" size="icon" :disabled="!mail">
-              <ReplyAll class="size-4" />
-              <span class="sr-only">Reply all</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Reply all</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button variant="ghost" size="icon" :disabled="!mail">
-              <Forward class="size-4" />
-              <span class="sr-only">Forward</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Forward</TooltipContent>
-        </Tooltip>
-      </div>
-      <Separator orientation="vertical" class="mx-2 h-6" />
-    </div>
-    <Separator />
-    <div v-if="mail" class="flex flex-1 flex-col">
+    <div v-if="mail" class="flex flex-1 flex-col overflow-hidden">
       <div class="flex items-start p-4">
-        <div class="flex items-start gap-4 text-sm">
-          <div class="grid gap-1">
-            <div class="font-semibold">
-              {{ mail.name }}
+        <div class="flex items-start gap-4 text-sm w-full">
+          <div class="grid gap-1 w-full">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="font-semibold text-base">
+                {{ mail.name }}
+              </div>
+              <div class="text-xs text-muted-foreground whitespace-nowrap">
+                {{ formatDate(mail.created_at) }}
+              </div>
             </div>
-            <div class="line-clamp-1 text-xs">
+            <div class="text-sm font-medium">
               {{ mail.subject }}
             </div>
-            <div class="line-clamp-1 text-xs">
-              <span class="font-medium">Reply-To:</span> {{ mail.email }}
+            <div class="text-sm">
+              <span class="font-medium">Email:</span> {{ mail.email }}
+            </div>
+            <div class="text-sm">
+              <span class="font-medium">Trạng thái: </span>
+              <span :class="mail.is_replied ? 'text-green-600' : 'text-red-600'">
+                {{ mail.is_replied ? 'Đã trả lời' : 'Chưa trả lời' }}
+              </span>
             </div>
           </div>
         </div>
       </div>
       <Separator />
-      <div class="flex-1 whitespace-pre-wrap p-4 text-sm">
-        {{ mail.text }}
+      <div class="flex-1 overflow-auto">
+        <div class="whitespace-pre-wrap p-4 text-sm">
+          {{ mail.content }}
+        </div>
       </div>
       <Separator class="mt-auto" />
-      <div class="p-4">
-        <form>
+      <div v-if="!mail.is_replied" class="p-4">
+        <form @submit.prevent="handleSendReply">
           <div class="grid gap-4">
-            <Textarea
-              class="p-4"
-              :placeholder="`Reply ${mail.name}...`"
-            />
+            <Input v-model="replySubject" :placeholder="`Re: ${mail.subject}`" />
+            <Textarea v-model="replyMessage" class="min-h-[150px]" :placeholder="`Trả lời ${mail.name}...`" />
             <div class="flex items-center">
-              <Button
-                type="button"
-                size="sm"
-                class="ml-auto"
-              >
-                Send
+              <Button type="submit" size="sm" class="ml-auto" :disabled="!replyMessage.trim()">
+                Gửi trả lời
               </Button>
             </div>
           </div>
@@ -124,7 +107,7 @@ const today = new Date()
       </div>
     </div>
     <div v-else class="p-8 text-center text-muted-foreground">
-      No message selected
+      Chưa chọn tin nhắn nào
     </div>
   </div>
 </template>
