@@ -85,5 +85,11 @@ export default <RouterConfig>{
             component: () => import('~/pages/OrderManagement/[id].vue'),
             meta: { middleware: 'admin' },
         },
+        {
+            name: 'mail',
+            path: '/mail',
+            component: () => import('~/pages/ContactUs/Test.vue'),
+            meta: { middleware: 'admin' },
+        },
     ]
 };
