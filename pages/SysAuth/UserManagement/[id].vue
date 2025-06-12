@@ -72,7 +72,7 @@ const fetchUser = async () => {
   }
 }
 
-const updateUser = async (updatedUser: User) => {
+const updateUser = async (updatedUser: User & { newPassword?: string }) => {
   try {
     const config = useRuntimeConfig()
     const token = useCookie('access_token')
@@ -89,6 +89,7 @@ const updateUser = async (updatedUser: User) => {
         phone_number: updatedUser.phone_number,
         address: updatedUser.address,
         is_active: updatedUser.is_active,
+        password: updatedUser.newPassword,
       },
     })
 
