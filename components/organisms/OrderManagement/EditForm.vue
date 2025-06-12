@@ -141,7 +141,7 @@ const fetchOrder = async () => {
     const response = await $fetch(`${config.public.apiBase}/order/admin/order/${route.params.id}/`, {
       headers: { Authorization: `Bearer ${token.value}` },
     });
-    order.value = response;
+    Object.assign(order, response);
   } catch (error) {
     console.error("Lỗi khi tải đơn hàng:", error);
     toast.error("Không tìm thấy thông tin đơn hàng!");
@@ -155,14 +155,15 @@ const saveChanges = async () => {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token.value}` },
       body: {
-        phone_number: order.value.phone_number,
-        address: order.value.address,
-        status: order.value.status,
-        payment_method: order.value.payment_method,
-        payment_status: order.value.payment_status,
+        phone_number: order.phone_number,
+        address: order.address,
+        status: order.status,
+        payment_method: order.payment_method,
+        payment_status: order.payment_status,
       },
     });
     toast.success("Cập nhật đơn hàng thành công!");
+    await fetchOrder(); // Refresh order data after successful update
   } catch (error) {
     console.error("Lỗi khi cập nhật đơn hàng:", error);
     toast.error("Cập nhật thất bại!");

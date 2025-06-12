@@ -27,6 +27,18 @@
       <Input id="address" v-model="form.address" type="text" placeholder="Địa chỉ" />
     </div>
 
+    <div class="grid gap-2">
+      <Label for="newPassword">Mật khẩu mới</Label>
+      <Input id="newPassword" v-model="passwords.newPassword" type="password" placeholder="Mật khẩu mới" />
+    </div>
+
+    <div class="grid gap-2">
+      <Label for="confirmNewPassword">Nhập lại mật khẩu mới</Label>
+      <Input id="confirmNewPassword" v-model="passwords.confirmNewPassword" type="password" placeholder="Nhập lại mật khẩu mới" />
+    </div>
+
+    <div class="text-red-500 text-sm">(*) Chỉ nhập khi muốn thay đổi mật khẩu</div>
+
     <div class="flex items-center gap-2">
       <input id="is_active" type="checkbox" v-model="form.is_active" class="w-4 h-4" />
       <Label for="is_active">Kích hoạt tài khoản</Label>
@@ -72,16 +84,37 @@ const toast = useToast()
 // Dùng reactive để có thể chỉnh sửa dữ liệu props
 const form = reactive({ ...props.user })
 
+// Thêm state cho mật khẩu
+const passwords = reactive({
+  newPassword: '',
+  confirmNewPassword: ''
+})
+
 // Nếu props.user thay đổi từ bên ngoài → cập nhật lại form
 watch(() => props.user, (newUser) => {
   Object.assign(form, newUser)
 })
 
 const saveChanges = () => {
-  emit("save", { ...form })
+  // Kiểm tra mật khẩu nếu được nhập
+  if (passwords.newPassword || passwords.confirmNewPassword) {
+    if (passwords.newPassword !== passwords.confirmNewPassword) {
+      toast.error("Mật khẩu mới và nhập lại mật khẩu mới không khớp!")
+      return
+    }
+  }
+
+  // Gửi form và mật khẩu mới (nếu có) lên component cha
+  emit("save", { 
+    ...form,
+    newPassword: passwords.newPassword || undefined 
+  })
 }
 
 const cancelChanges = () => {
+  // Reset mật khẩu khi hủy
+  passwords.newPassword = ''
+  passwords.confirmNewPassword = ''
   emit("cancel")
 }
 </script>
