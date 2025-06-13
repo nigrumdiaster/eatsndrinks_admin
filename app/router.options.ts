@@ -91,5 +91,23 @@ export default <RouterConfig>{
             component: () => import('~/pages/OrderManagement/[id].vue'),
             meta: { middleware: 'admin' },
         },
+        {
+            name: 'combo-management',
+            path: '/combo-management',
+            component: () => import('~/pages/ComboManagement/List.vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
+            name: 'combo-management-create',
+            path: '/combo-management/create',
+            component: () => import('~/pages/ComboManagement/Create.vue'),
+            meta: { middleware: 'admin' },
+        },
+        {
+            name: 'combo-management-id',
+            path: '/combo-management/:id',
+            component: () => import('~/pages/ComboManagement/[id].vue'),
+            meta: { middleware: 'admin' },
+        },
     ]
 };
