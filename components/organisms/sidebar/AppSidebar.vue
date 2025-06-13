@@ -92,6 +92,10 @@ const data = {
           title: 'Danh mục sản phẩm',
           url: '/category-management',
         },
+        {
+          title: 'Danh sách combo',
+          url: '/combo-management',
+        },
       ],
     },
     {
