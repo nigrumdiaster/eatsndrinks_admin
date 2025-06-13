@@ -20,13 +20,13 @@
       
       <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
           <h1 class="text-2xl font-bold">Thêm sản phẩm</h1>
-          <CreateForm @create-product="handleCreateProduct" />
+          <CreateForm :categories="categories" @create-product="handleCreateProduct" />
       </div>
   </MainTemplate>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useRuntimeConfig, useCookie, navigateTo } from '#app'
 import CreateForm from '~/components/organisms/ProductManagement/CreateForm.vue'
@@ -38,10 +38,33 @@ import BreadcrumbLink from '@/components/ui/breadcrumb/BreadcrumbLink.vue'
 import BreadcrumbSeparator from '@/components/ui/breadcrumb/BreadcrumbSeparator.vue'
 import BreadcrumbPage from '@/components/ui/breadcrumb/BreadcrumbPage.vue'
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 const toast = useToast();
 const router = useRouter();
 const config = useRuntimeConfig();
 const token = useCookie("access_token");
+const categories = ref<Category[]>([]);
+
+const fetchCategories = async () => {
+  try {
+    const response = await $fetch<Category[]>(`${config.public.apiBase}/catalogue/categories/`, {
+      headers: { Authorization: `Bearer ${token.value}` },
+    });
+    categories.value = response;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách danh mục:', error);
+    toast.error('Không thể tải danh sách danh mục!');
+  }
+};
+
+onMounted(() => {
+  fetchCategories();
+});
+
 const handleCreateProduct = async (formData: FormData) => {
   console.log("Nhận dữ liệu từ form:", formData);
 

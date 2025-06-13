@@ -20,7 +20,7 @@
 
     <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
       <h1 class="text-2xl font-bold">Chỉnh sửa sản phẩm</h1>
-      <EditForm v-if="product" :product="product" @save="updateProduct" @cancel="goBack" />
+      <EditForm v-if="product" :product="product" :categories="categories" @save="updateProduct" @cancel="goBack" />
       <p v-else class="text-center text-gray-500">Đang tải dữ liệu...</p>
     </div>
   </MainTemplate>
@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { ref, onMounted, h } from 'vue'
 import { useToast } from 'vue-toastification'
-import { useRuntimeConfig, useCookie, useRoute, useRouter, navigateTo } from '#app'
+import { useRuntimeConfig, useCookie, useRoute, useRouter } from '#app'
 
 import MainTemplate from '~/components/layouts/MainTemplate.vue'
 import Breadcrumb from '@/components/ui/breadcrumb/Breadcrumb.vue'
@@ -39,6 +39,11 @@ import BreadcrumbLink from '@/components/ui/breadcrumb/BreadcrumbLink.vue'
 import BreadcrumbSeparator from '@/components/ui/breadcrumb/BreadcrumbSeparator.vue'
 import BreadcrumbPage from '@/components/ui/breadcrumb/BreadcrumbPage.vue'
 import EditForm from '~/components/organisms/ProductManagement/EditForm.vue'
+
+interface Category {
+  id: number;
+  name: string;
+}
 
 interface Product {
   id: number
@@ -57,13 +62,25 @@ interface Product {
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const config = useRuntimeConfig()
+const token = useCookie('access_token')
 const product = ref<Product | null>(null)
+const categories = ref<Category[]>([])
+
+const fetchCategories = async () => {
+  try {
+    const response = await $fetch<Category[]>(`${config.public.apiBase}/catalogue/categories/`, {
+      headers: { Authorization: `Bearer ${token.value}` },
+    });
+    categories.value = response;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách danh mục:', error);
+    toast.error('Không thể tải danh sách danh mục!');
+  }
+};
 
 const fetchProduct = async () => {
   try {
-    const config = useRuntimeConfig()
-    const token = useCookie('access_token')
-
     const response = await $fetch<Product>(`${config.public.apiBase}/catalogue/products/${route.params.id}/`, {
       headers: { Authorization: `Bearer ${token.value}` },
     })
@@ -77,9 +94,6 @@ const fetchProduct = async () => {
 
 const updateProduct = async (formData: FormData) => {
   try {
-    const config = useRuntimeConfig()
-    const token = useCookie('access_token')
-
     await $fetch(`${config.public.apiBase}/catalogue/products/${route.params.id}/`, {
       method: 'PATCH',
       headers: {
@@ -116,5 +130,8 @@ const goBack = () => {
   )
 }
 
-onMounted(fetchProduct)
+onMounted(() => {
+  fetchProduct()
+  fetchCategories()
+})
 </script>

@@ -98,8 +98,6 @@
       </div>
     </div>
 
-
-
     <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
       <Button type="submit" class="w-full sm:w-60" @click="submitForm">
         Lưu thay đổi
@@ -128,9 +126,18 @@ const config = useRuntimeConfig()
 
 const emit = defineEmits(['save', 'cancel'])
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 const props = defineProps({
   product: {
     type: Object,
+    required: true
+  },
+  categories: {
+    type: Array as () => Category[],
     required: true
   }
 })
@@ -147,7 +154,7 @@ const form = ref({
   flash_sale_price: null as number | null,
   flash_sale_start: null as string | null,
   flash_sale_end: null as string | null,
-  category: 0,
+  category: '',
   is_active: true,
   created_at: '',
   updated_at: '',
@@ -217,7 +224,6 @@ const flashSaleEndProxy = computed({
   }
 })
 
-
 onMounted(() => {
   fetchCategories()
 })
@@ -239,7 +245,7 @@ const handleCategoryChange = () => {
 
 const submitForm = () => {
   const { name, price, category } = form.value
-  if (!name || !price || category === null) {
+  if (!name || !price || !category) {
     toast.error('Vui lòng điền đầy đủ thông tin bắt buộc!')
     return
   }
@@ -283,21 +289,12 @@ const cancelCreate = () => {
   emit('cancel')
 }
 
-const formatDateTime = (dateString: string) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('vi-VN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).format(date);
+const formatDateTime = (date: string) => {
+  if (!date) return ''
+  return new Date(date).toLocaleString('vi-VN')
 }
 
 const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('vi-VN').format(price);
+  return new Intl.NumberFormat('vi-VN').format(price)
 }
 </script>

@@ -28,16 +28,23 @@
     </div>
 
     <div class="grid gap-2">
-      <div class="grid gap-2">
-        <Label for="category">Danh mục</Label>
-        <Input id="category" v-model="form.category" type="number" placeholder="ID danh mục" />
-      </div>
+      <Label for="category">Danh mục</Label>
+      <Select v-model="form.category">
+        <SelectTrigger class="w-full">
+          <SelectValue placeholder="Chọn danh mục" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="category in categories" :key="category.id" :value="category.id">
+            {{ category.name }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
 
+    <div class="grid gap-2">
       <div class="grid gap-2">
-        <div class="grid gap-2">
-          <Label for="is_active">Hiển thị</Label>
-          <input id="is_active" v-model="form.is_active" type="checkbox" class="w-5 h-5" />
-        </div>
+        <Label for="is_active">Hiển thị</Label>
+        <input id="is_active" v-model="form.is_active" type="checkbox" class="w-5 h-5" />
       </div>
     </div>
 
@@ -57,11 +64,24 @@ import { ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from 'vue-toastification'
 import { useRouter } from '#app'
 
 const toast = useToast()
 const router = useRouter()
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+const props = defineProps({
+  categories: {
+    type: Array as () => Category[],
+    required: true
+  }
+})
 
 const emit = defineEmits(['create-product', 'reset-form'])
 
@@ -69,9 +89,9 @@ const form = ref({
   name: '',
   description: '',
   mainimage: null as File | null,
-  uploaded_images: [] as File[], // Đổi tên trường
+  uploaded_images: [] as File[],
   price: 0,
-  category: 0,
+  category: '',
   is_active: true,
 })
 
@@ -82,37 +102,40 @@ const handleFileChange = (e: Event, type: 'main' | 'uploaded_images' = 'main') =
       form.value.mainimage = target.files[0]
     } else {
       form.value.uploaded_images = Array.from(target.files)
-      console.log('Selected images:', form.value.uploaded_images)
     }
   }
 }
 
 const submitForm = () => {
   const { name, price, category } = form.value
-  if (!name || !price || category === null) {
+  if (!name || !price || !category) {
     toast.error('Vui lòng điền đầy đủ thông tin bắt buộc!')
     return
   }
 
   const formData = new FormData()
 
-  for (const [key, value] of Object.entries(form.value)) {
-    if (key === 'uploaded_images' && Array.isArray(value)) {
-      value.forEach((file) => {
-        formData.append('uploaded_images', file)
-      })
-    } else if (value !== null && value !== undefined && !(value instanceof Array)) {
-      if (value instanceof File) {
-        formData.append(key, value)
-      } else {
-        formData.append(key, String(value))
-      }
-    }
+  // Thêm các trường cơ bản
+  formData.append('name', form.value.name)
+  formData.append('description', form.value.description || '')
+  formData.append('price', String(form.value.price))
+  formData.append('category', String(form.value.category))
+  formData.append('is_active', String(form.value.is_active))
+  
+  // Thêm ảnh chính nếu có
+  if (form.value.mainimage instanceof File) {
+    formData.append('mainimage', form.value.mainimage)
+  }
+
+  // Thêm các ảnh phụ nếu có
+  if (form.value.uploaded_images.length > 0) {
+    form.value.uploaded_images.forEach((file) => {
+      formData.append('uploaded_images', file)
+    })
   }
 
   emit('create-product', formData)
 }
-
 
 const cancelCreate = () => {
   toast.warning(h("div", [
