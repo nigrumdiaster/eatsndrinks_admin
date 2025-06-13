@@ -53,6 +53,16 @@
                 v-model="newItem.product"
                 placeholder="Nhập ID sản phẩm"
               />
+              <!-- Product Info Display -->
+              <div v-if="productInfo" class="mt-2 p-3 border rounded-lg bg-gray-50">
+                <div class="flex items-center gap-3">
+                  <img :src="productInfo.image" :alt="productInfo.name" class="w-16 h-16 object-cover rounded">
+                  <div>
+                    <h3 class="font-medium">{{ productInfo.name }}</h3>
+                    <p class="text-gray-600">{{ productInfo.price }} đ</p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="w-32">
               <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng</label>
@@ -63,7 +73,7 @@
               />
             </div>
             <div class="flex items-end">
-              <Button @click="addItem" class="bg-primary text-white">
+              <Button @click="addItem" class="bg-primary text-white" :disabled="!productInfo">
                 Thêm
               </Button>
             </div>
@@ -72,7 +82,13 @@
           <!-- Combo Items List -->
           <div class="space-y-2">
             <div v-for="(item, index) in form.combo_items" :key="index" class="flex items-center gap-4 p-2 border rounded">
-              <span class="flex-1">ID: {{ item.product }}</span>
+              <div class="flex-1 flex items-center gap-3">
+                <img v-if="item.product_image" :src="item.product_image" :alt="item.product_name" class="w-12 h-12 object-cover rounded">
+                <div>
+                  <div class="font-medium">{{ item.product_name }}</div>
+                  <div class="text-sm text-gray-600">{{ item.product_price }} đ</div>
+                </div>
+              </div>
               <Input 
                 v-model="item.quantity" 
                 type="number" 
@@ -100,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted, h, watch, onUnmounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useRuntimeConfig, useCookie, useRouter } from '#app'
 import MainTemplate from '~/components/layouts/MainTemplate.vue'
@@ -115,8 +131,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 interface ComboItem {
-  product: number;
+  product: number | string;
   quantity: number;
+  product_name?: string;
+  product_price?: string;
+  product_image?: string;
+}
+
+interface ProductResponse {
+  name: string;
+  price: string;
+  mainimage: string;
 }
 
 const router = useRouter()
@@ -124,7 +149,9 @@ const toast = useToast()
 const config = useRuntimeConfig()
 const token = useCookie('access_token')
 
-const newItem = ref<ComboItem>({ product: 0, quantity: 1 })
+const newItem = ref<ComboItem>({ product: '', quantity: 1 })
+const productInfo = ref<{name: string, price: string, image: string} | null>(null)
+const searchTimeout = ref<number | null>(null)
 
 const form = ref({
   name: '',
@@ -134,13 +161,64 @@ const form = ref({
   combo_items: [] as ComboItem[]
 })
 
+const fetchProductInfo = async (productId: string | number) => {
+  try {
+    if (!productId) {
+      productInfo.value = null
+      return
+    }
+    
+    const response = await $fetch<ProductResponse>(`${config.public.apiBase}/catalogue/products/${productId}/`, {
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
+    
+    productInfo.value = {
+      name: response.name,
+      price: response.price,
+      image: response.mainimage
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin sản phẩm:', error)
+    productInfo.value = null
+    toast.error('Không tìm thấy sản phẩm với ID này!')
+  }
+}
+
+// Watch for changes in product ID input with debounce
+watch(() => newItem.value.product, (newValue) => {
+  // Clear previous timeout if exists
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
+
+  // Set new timeout
+  searchTimeout.value = window.setTimeout(() => {
+    if (newValue) {
+      fetchProductInfo(newValue)
+    } else {
+      productInfo.value = null
+    }
+  }, 500) // Wait for 500ms after user stops typing
+})
+
+// Clean up timeout when component is unmounted
+onUnmounted(() => {
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
+})
+
 const addItem = () => {
-  if (newItem.value.product && newItem.value.quantity) {
+  if (newItem.value.product && newItem.value.quantity && productInfo.value) {
     form.value.combo_items.push({ 
       product: Number(newItem.value.product), 
-      quantity: Number(newItem.value.quantity) 
+      quantity: Number(newItem.value.quantity),
+      product_name: productInfo.value.name,
+      product_price: productInfo.value.price,
+      product_image: productInfo.value.image
     })
-    newItem.value = { product: 0, quantity: 1 }
+    newItem.value = { product: '', quantity: 1 }
+    productInfo.value = null
   }
 }
 

@@ -56,6 +56,16 @@
                 v-model="newItem.product"
                 placeholder="Nhập ID sản phẩm"
               />
+              <!-- Product Info Display -->
+              <div v-if="productInfo" class="mt-2 p-3 border rounded-lg bg-gray-50">
+                <div class="flex items-center gap-3">
+                  <img :src="productInfo.image" :alt="productInfo.name" class="w-16 h-16 object-cover rounded">
+                  <div>
+                    <h3 class="font-medium">{{ productInfo.name }}</h3>
+                    <p class="text-gray-600">{{ productInfo.price }} đ</p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="w-32">
               <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng</label>
@@ -66,7 +76,7 @@
               />
             </div>
             <div class="flex items-end">
-              <Button @click="addItem" class="bg-primary text-white">
+              <Button @click="addItem" class="bg-primary text-white" :disabled="!productInfo">
                 Thêm
               </Button>
             </div>
@@ -75,12 +85,12 @@
           <!-- Items List -->
           <div class="mt-4">
             <div v-for="(item, index) in form.combo_items" :key="index" class="flex items-center gap-4 mb-2">
-              <div class="flex-1">
-                <Input
-                  v-model="item.product"
-                  placeholder="ID sản phẩm"
-                  class="w-full"
-                />
+              <div class="flex-1 flex items-center gap-3">
+                <img v-if="item.product_image" :src="item.product_image" :alt="item.product_name" class="w-12 h-12 object-cover rounded">
+                <div>
+                  <div class="font-medium">{{ item.product_name }}</div>
+                  <div class="text-sm text-gray-600">{{ item.product_price }} đ</div>
+                </div>
               </div>
               <div class="w-32">
                 <Input
@@ -90,8 +100,8 @@
                   class="w-full"
                 />
               </div>
-              <Button @click="removeItem(index)" class="text-red-600">
-                <i class="fas fa-trash"></i>
+              <Button @click="removeItem(index)">
+                Xoá
               </Button>
             </div>
           </div>
@@ -112,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted, h, watch, onUnmounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useRuntimeConfig, useCookie, useRoute, useRouter } from '#app'
 import MainTemplate from '~/components/layouts/MainTemplate.vue'
@@ -134,22 +144,36 @@ import {
 } from '@/components/ui/select'
 
 interface ComboItem {
+  id: number;
   product: number;
+  product_name: string;
+  product_price: string;
+  product_image: string;
   quantity: number;
+}
+
+interface NewComboItem {
+  product: number | string;
+  quantity: number;
+}
+
+interface ProductResponse {
+  name: string;
+  price: string;
+  mainimage: string;
 }
 
 interface Combo {
   id: number;
   name: string;
   description: string;
-  discount_amount: number;
+  discount_amount: string;
   is_active: boolean;
-  combo_items: ComboItem[];
-}
-
-interface Product {
-  id: number;
-  name: string;
+  created_at: string;
+  updated_at: string;
+  items: ComboItem[];
+  total_original_price: number;
+  total_discounted_price: number;
 }
 
 const route = useRoute()
@@ -159,8 +183,9 @@ const config = useRuntimeConfig()
 const token = useCookie('access_token')
 
 const combo = ref<Combo | null>(null)
-const availableProducts = ref<Product[]>([])
-const newItem = ref<ComboItem>({ product: 0, quantity: 1 })
+const newItem = ref<NewComboItem>({ product: '', quantity: 1 })
+const productInfo = ref<{name: string, price: string, image: string} | null>(null)
+const searchTimeout = ref<number | null>(null)
 
 const form = ref({
   name: '',
@@ -184,9 +209,9 @@ const fetchCombo = async () => {
     form.value = {
       name: response.name,
       description: response.description,
-      discount_amount: response.discount_amount,
+      discount_amount: Number(response.discount_amount),
       is_active: response.is_active,
-      combo_items: Array.isArray(response.combo_items) ? [...response.combo_items] : []
+      combo_items: Array.isArray(response.items) ? [...response.items] : []
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin combo:', error)
@@ -194,36 +219,65 @@ const fetchCombo = async () => {
   }
 }
 
-const fetchProducts = async () => {
+const fetchProductInfo = async (productId: string | number) => {
   try {
-    if (!token.value) return;
-
-    const response = await $fetch<Product[]>(`${config.public.apiBase}/catalogue/products/`, {
-      headers: { 
-        Authorization: `Bearer ${token.value}`,
-        'Content-Type': 'application/json'
-      },
+    if (!productId) {
+      productInfo.value = null
+      return
+    }
+    
+    const response = await $fetch<ProductResponse>(`${config.public.apiBase}/catalogue/products/${productId}/`, {
+      headers: { Authorization: `Bearer ${token.value}` },
     })
-    availableProducts.value = Array.isArray(response) ? response : []
+    
+    productInfo.value = {
+      name: response.name,
+      price: response.price,
+      image: response.mainimage
+    }
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách sản phẩm:', error)
-    toast.error('Không thể tải danh sách sản phẩm!')
-    availableProducts.value = []
+    console.error('Lỗi khi lấy thông tin sản phẩm:', error)
+    productInfo.value = null
+    toast.error('Không tìm thấy sản phẩm với ID này!')
   }
 }
 
-const getProductName = (productId: number) => {
-  const product = availableProducts.value.find(p => p.id === productId)
-  return product ? product.name : 'Không tìm thấy sản phẩm'
-}
+// Watch for changes in product ID input with debounce
+watch(() => newItem.value.product, (newValue) => {
+  // Clear previous timeout if exists
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
+
+  // Set new timeout
+  searchTimeout.value = window.setTimeout(() => {
+    if (newValue) {
+      fetchProductInfo(newValue)
+    } else {
+      productInfo.value = null
+    }
+  }, 500) // Wait for 500ms after user stops typing
+})
+
+// Clean up timeout when component is unmounted
+onUnmounted(() => {
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
+})
 
 const addItem = () => {
-  if (newItem.value.product && newItem.value.quantity) {
+  if (newItem.value.product && newItem.value.quantity && productInfo.value) {
     form.value.combo_items.push({ 
+      id: 0, // Temporary ID for new items
       product: Number(newItem.value.product), 
-      quantity: Number(newItem.value.quantity) 
+      quantity: Number(newItem.value.quantity),
+      product_name: productInfo.value.name,
+      product_price: productInfo.value.price,
+      product_image: productInfo.value.image
     })
-    newItem.value = { product: 0, quantity: 1 }
+    newItem.value = { product: '', quantity: 1 }
+    productInfo.value = null
   }
 }
 
@@ -235,13 +289,27 @@ const saveChanges = async () => {
   try {
     if (!token.value) return;
 
+    // Format data to match API requirements
+    const payload = {
+      name: form.value.name,
+      description: form.value.description,
+      discount_amount: form.value.discount_amount,
+      is_active: form.value.is_active,
+      combo_items: form.value.combo_items.map(item => ({
+        product: item.product,
+        quantity: item.quantity
+      }))
+    }
+
+    console.log('Sending payload:', payload) // Debug log
+
     await $fetch(`${config.public.apiBase}/catalogue/combos/${route.params.id}/`, {
       method: 'PATCH',
       headers: { 
         Authorization: `Bearer ${token.value}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(form.value),
+      body: JSON.stringify(payload),
     })
 
     toast.success('Cập nhật thành công!')
@@ -274,7 +342,6 @@ const cancelChanges = () => {
 
 onMounted(() => {
   fetchCombo()
-  fetchProducts()
 })
 </script>
 

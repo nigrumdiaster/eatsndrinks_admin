@@ -38,9 +38,8 @@
         theme-color="#000000"
         :headers="headers"
         :items="combos"
-        :server-items-length="totalCombos"
         :rows-items="[5, 10, 20]"
-        v-model:server-options="serverOptions"
+        :rows-per-page="10"
         :loading="loading"
         buttons-pagination
         border-cell
@@ -108,7 +107,6 @@ const toast = useToast()
 const config = useRuntimeConfig()
 const token = useCookie('access_token')
 const combos = ref<Combo[]>([]);
-const totalCombos = ref(0);
 const loading = ref(false)
 const search = ref('')
 const headers = [
@@ -120,11 +118,6 @@ const headers = [
   { text: "Actions", value: "actions", sortable: false },
 ];
 
-const serverOptions = ref({
-  page: 1,
-  rowsPerPage: 10,
-})
-
 const fetchCombos = async () => {
   if (!token.value) return
 
@@ -132,26 +125,15 @@ const fetchCombos = async () => {
   try {
     const response = await $fetch<Combo[]>(`${config.public.apiBase}/catalogue/combos/`, {
       headers: { Authorization: `Bearer ${token.value}` },
+      params: {
+        search: search.value || undefined
+      }
     });
 
-    // Apply search filter on client side
-    const filteredCombos = search.value
-      ? response.filter(combo => 
-          combo.name.toLowerCase().includes(search.value.toLowerCase()) ||
-          combo.description.toLowerCase().includes(search.value.toLowerCase())
-        )
-      : response;
-
-    // Apply pagination on client side
-    const startIndex = (serverOptions.value.page - 1) * serverOptions.value.rowsPerPage;
-    const endIndex = startIndex + serverOptions.value.rowsPerPage;
-    const paginatedCombos = filteredCombos.slice(startIndex, endIndex);
-
-    combos.value = paginatedCombos.map(combo => ({
+    combos.value = response.map(combo => ({
       ...combo,
       is_active: combo.is_active ? "Đã kích hoạt" : "Chưa kích hoạt",
     }));
-    totalCombos.value = filteredCombos.length;
   } catch (error) {
     console.error("Error fetching combos:", error);
     toast.error("Không thể tải danh sách combo");
@@ -160,12 +142,8 @@ const fetchCombos = async () => {
   }
 };
 
-// Watch pagination change
-watch(serverOptions, fetchCombos, { deep: true, immediate: true })
-watch(search, () => {
-  serverOptions.value.page = 1 // reset về page 1
-  fetchCombos()
-})
+// Watch search changes
+watch(search, fetchCombos, { immediate: true })
 
 const emitAction = (action: 'delete' | 'activate', id: number) => {
   const confirmMsg =
