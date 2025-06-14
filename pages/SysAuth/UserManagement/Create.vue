@@ -56,7 +56,7 @@ const handleCreateUser = async (form: { username: string; password: string; firs
 
     console.log("Kết quả đăng ký:", response);
     toast.success("Người dùng đã được tạo thành công!");
-    router.push("/users");
+    router.push("/user-management");
   } catch (error) {
     console.error("Lỗi khi đăng ký:", error);
     toast.error("Không thể đăng ký. Vui lòng kiểm tra lại thông tin.");
