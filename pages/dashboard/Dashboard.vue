@@ -68,10 +68,10 @@
                 </CardHeader>
                 <CardContent>
                   <div class="text-2xl font-bold">
-                    +12
+                    +{{ userStats.current_month_users }}
                   </div>
                   <p class="text-xs text-muted-foreground">
-                    +180.1% so với tháng trước
+                    {{ userStats.increase_percentage > 0 ? '+' : '' }}{{ userStats.increase_percentage }}% so với tháng trước
                   </p>
                 </CardContent>
               </Card>
@@ -83,16 +83,15 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                     class="h-4 w-4 text-muted-foreground">
-                    <rect width="20" height="14" x="2" y="5" rx="2" />
-                    <path d="M2 10h20" />
+                    <path d="M20 7h-7m7 10h-7m7-5h-7M4 7h7m-7 10h7m-7-5h7" />
                   </svg>
                 </CardHeader>
                 <CardContent>
                   <div class="text-2xl font-bold">
-                    +12
+                    +{{ productStats.current_month_products }}
                   </div>
                   <p class="text-xs text-muted-foreground">
-                    +19% so với tháng trước
+                    {{ productStats.increase_percentage > 0 ? '+' : '' }}{{ productStats.increase_percentage }}% so với tháng trước
                   </p>
                 </CardContent>
               </Card>
@@ -191,6 +190,18 @@ interface FlashSaleResponse {
   results: Array<any>
 }
 
+interface UserStats {
+  current_month_users: number
+  previous_month_users: number
+  increase_percentage: number
+}
+
+interface ProductStats {
+  current_month_products: number
+  previous_month_products: number
+  increase_percentage: number
+}
+
 const monthlySales = ref<MonthlySales>({ total_quantity: 0 })
 const monthlyRevenue = ref<MonthlyRevenue>({
   revenue_this_month: 0,
@@ -198,6 +209,16 @@ const monthlyRevenue = ref<MonthlyRevenue>({
   percentage_change: null
 })
 const flashSaleCount = ref<number>(0)
+const userStats = ref<UserStats>({
+  current_month_users: 0,
+  previous_month_users: 0,
+  increase_percentage: 0
+})
+const productStats = ref<ProductStats>({
+  current_month_products: 0,
+  previous_month_products: 0,
+  increase_percentage: 0
+})
 
 const config = useRuntimeConfig()
 const token = useCookie('access_token')
@@ -247,6 +268,30 @@ const fetchFlashSaleProducts = async () => {
   }
 }
 
+const fetchUserStats = async () => {
+  try {
+    if (!token.value) return
+    const response = await $fetch(`${config.public.apiBase}/users/admin/stats/`, {
+      headers: { Authorization: `Bearer ${token.value}` }
+    })
+    userStats.value = response
+  } catch (error) {
+    console.error('Error fetching user stats:', error)
+  }
+}
+
+const fetchProductStats = async () => {
+  try {
+    if (!token.value) return
+    const response = await $fetch(`${config.public.apiBase}/catalogue/products/stats/`, {
+      headers: { Authorization: `Bearer ${token.value}` }
+    })
+    productStats.value = response
+  } catch (error) {
+    console.error('Error fetching product stats:', error)
+  }
+}
+
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -258,5 +303,7 @@ onMounted(() => {
   fetchMonthlySales()
   fetchMonthlyRevenue()
   fetchFlashSaleProducts()
+  fetchUserStats()
+  fetchProductStats()
 })
 </script>
