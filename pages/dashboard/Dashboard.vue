@@ -274,7 +274,7 @@ const fetchUserStats = async () => {
     const response = await $fetch(`${config.public.apiBase}/users/admin/stats/`, {
       headers: { Authorization: `Bearer ${token.value}` }
     })
-    userStats.value = response
+    userStats.value = response as UserStats
   } catch (error) {
     console.error('Error fetching user stats:', error)
   }
@@ -286,7 +286,7 @@ const fetchProductStats = async () => {
     const response = await $fetch(`${config.public.apiBase}/catalogue/products/stats/`, {
       headers: { Authorization: `Bearer ${token.value}` }
     })
-    productStats.value = response
+    productStats.value = response as ProductStats
   } catch (error) {
     console.error('Error fetching product stats:', error)
   }
