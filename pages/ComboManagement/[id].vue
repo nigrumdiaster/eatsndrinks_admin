@@ -150,6 +150,7 @@ interface ComboItem {
   product_price: string;
   product_image: string;
   quantity: number;
+  mainimage?: string;
 }
 
 interface NewComboItem {
@@ -211,7 +212,12 @@ const fetchCombo = async () => {
       description: response.description,
       discount_amount: Number(response.discount_amount),
       is_active: response.is_active,
-      combo_items: Array.isArray(response.items) ? [...response.items] : []
+      combo_items: Array.isArray(response.items)
+        ? response.items.map(item => ({
+            ...item,
+            product_image: item.mainimage || item.product_image
+          }))
+        : []
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin combo:', error)
